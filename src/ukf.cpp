@@ -69,11 +69,11 @@ UKF::UKF() {
   H_<<1,0,0,0,0,
       0,1,0,0,0;
 
-  R_laser_<<std_laspx_,0,
-            0,std_laspy_;
-  R_radar_<<std_radr_,0,0,
-            0,std_radphi_,0,
-            0,0,std_radrd_;
+  R_laser_<<std_laspx_*std_laspx_,0,
+            0,std_laspy_*std_laspy_;
+  R_radar_<<std_radr_*std_radr_,0,0,
+            0,std_radphi_*std_radphi_,0,
+            0,0,std_radrd_*std_radrd_;
 
   //Initializing other Variables
   is_initialized_=false;
@@ -97,34 +97,37 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
    * TODO: Complete this function! Make sure you switch between lidar and radar
    * measurements.
    */
-    static long long previous_timestamp_=0; 
-    static double delta_T;
+    time_us_=0; 
 if (is_initialized_==false)
 {
   cout << "UKF: " << endl;
-	previous_timestamp_=meas_package.timestamp_;
+	time_us_=meas_package.timestamp_;
     if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
     x_(0)=meas_package.raw_measurements_(0)*cos(meas_package.raw_measurements_(1));
     x_(1)=meas_package.raw_measurements_(0)*sin(meas_package.raw_measurements_(1));
     x_(2)=meas_package.raw_measurements_(2);
-    P_(3,3)=100;
-    P_(4,4)=100;   // Initializing the Co-variances of the yaw and yawdd as a higher value than the measurements since Radar measures velocity
+    P_(0,0)=std_laspx_*std_laspx_;
+    P_(1,1)=std_laspy_*std_laspy_;
+    P_(3,3)=200;
+    P_(4,4)=200;   // Initializing the Co-variances of the yaw and yawdd as a higher value than the measurements since Radar measures velocity
     }
     else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
 	//do nothing as we need the radar measurement to update the velocities. 	
     x_(0)=meas_package.raw_measurements_(0);
     x_(1)=meas_package.raw_measurements_(1);
-    x_(2)=0.5;
-    P_(2,2)=500;
-    P_(3,3)=100;
-    P_(4,4)=100; // Initializing the Co-variances of the velocity, yaw and yawdd as a higher value than the measurements since Lidar does not measure velocity
+    //x_(2)=0.5;
+    P_(0,0)=std_laspx_*std_laspx_;
+    P_(1,1)=std_laspy_*std_laspy_;
+    P_(2,2)=200;
+    P_(3,3)=200;
+    P_(4,4)=200; // Initializing the Co-variances of the velocity, yaw and yawdd as a higher value than the measurements since Lidar does not measure velocity
     }
     // done initializing, no need to predict or update
     is_initialized_ = true; 
 }
 else
 {
-delta_T=(meas_package.timestamp_-previous_timestamp_)/(double)1000000.;
+double delta_T=(meas_package.timestamp_-time_us_)/(double)1000000.;
 
 Prediction(delta_T);
 
@@ -137,7 +140,7 @@ else if (meas_package.sensor_type_==MeasurementPackage::LASER)
   UpdateLidar(meas_package);
 }
 }
-previous_timestamp_=meas_package.timestamp_;
+time_us_=meas_package.timestamp_;
 }
 
 void UKF::Prediction(double delta_t) {
