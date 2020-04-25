@@ -88,6 +88,7 @@ UKF::UKF() {
   weights_=VectorXd::Zero(15);
   weights_(0)=(lambda_/(lambda_+n_aug_));
   weights_.tail(2*n_aug_) = Eigen::VectorXd::Constant(2*n_aug_,1/(2*(lambda_+n_aug_)));
+   time_us_=0; 
 }
 
 UKF::~UKF() {}
@@ -97,9 +98,10 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
    * TODO: Complete this function! Make sure you switch between lidar and radar
    * measurements.
    */
-    time_us_=0; 
+    
 if (is_initialized_==false)
 {
+ 
   cout << "UKF: " << endl;
 	time_us_=meas_package.timestamp_;
     if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
@@ -108,8 +110,8 @@ if (is_initialized_==false)
     x_(2)=meas_package.raw_measurements_(2);
     P_(0,0)=std_laspx_*std_laspx_;
     P_(1,1)=std_laspy_*std_laspy_;
-    P_(3,3)=200;
-    P_(4,4)=200;   // Initializing the Co-variances of the yaw and yawdd as a higher value than the measurements since Radar measures velocity
+    //P_(3,3)=200;
+    //P_(4,4)=200;   // Initializing the Co-variances of the yaw and yawdd as a higher value than the measurements since Radar measures velocity
     }
     else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
 	//do nothing as we need the radar measurement to update the velocities. 	
@@ -118,9 +120,9 @@ if (is_initialized_==false)
     //x_(2)=0.5;
     P_(0,0)=std_laspx_*std_laspx_;
     P_(1,1)=std_laspy_*std_laspy_;
-    P_(2,2)=200;
-    P_(3,3)=200;
-    P_(4,4)=200; // Initializing the Co-variances of the velocity, yaw and yawdd as a higher value than the measurements since Lidar does not measure velocity
+    //P_(2,2)=200;
+    //P_(3,3)=200;
+    //P_(4,4)=200; // Initializing the Co-variances of the velocity, yaw and yawdd as a higher value than the measurements since Lidar does not measure velocity
     }
     // done initializing, no need to predict or update
     is_initialized_ = true; 
@@ -235,12 +237,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
     VectorXd y(2);
   MatrixXd S=MatrixXd(2,2);
   MatrixXd K=MatrixXd(5,2);
-  MatrixXd I=MatrixXd(5,5);
-  I<<1,0,0,0,0,
-    0,1,0,0,0,
-    0,0,1,0,0,
-    0,0,0,1,0,
-    0,0,0,0,1;
+  MatrixXd I=MatrixXd::Identity(5,5);
 y=meas_package.raw_measurements_-H_*x_;       // Lidar Kalman Filter Equations
 S=H_*P_*H_.transpose()+R_laser_;
 K= P_*H_.transpose()*S.inverse();
